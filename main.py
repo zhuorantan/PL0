@@ -64,8 +64,13 @@ from parser import Parser
 #     "a * b + 15"
 # ]
 
+# programs = [
+#     "var a,d;"
+# ]
+
 programs = [
-    "var a,d;"
+    # 'a := 1 + 2;',
+    'CALL something;'
 ]
 
 parser = Parser()
@@ -75,6 +80,6 @@ for program in programs:
     for token in tokens:
         print(token)
 
-    expression = parser.parse_variables(tokens)
+    expression = parser.parse_call(tokens)
     print(expression)
     print()

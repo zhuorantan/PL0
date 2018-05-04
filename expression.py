@@ -3,10 +3,8 @@ from enum import Enum
 
 class ExpressionType(Enum):
     NUMBER = 1
-    VARIABLE = 2
+    IDENTIFIER = 2
     BINARY = 3
-    PRIORITY = 4
-    CONSTDEFINITION = 5
 
     def name(self):
         return ExpressionType._names[self]
@@ -14,10 +12,8 @@ class ExpressionType(Enum):
 
 ExpressionType._names = {
     ExpressionType.NUMBER: 'number',
-    ExpressionType.VARIABLE: 'variable',
-    ExpressionType.BINARY: 'binary',
-    ExpressionType.PRIORITY: 'priority',
-    ExpressionType.CONSTDEFINITION: 'const_definition'
+    ExpressionType.IDENTIFIER: 'identifier',
+    ExpressionType.BINARY: 'binary'
 }
 
 

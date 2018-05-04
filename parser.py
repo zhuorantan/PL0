@@ -1,5 +1,8 @@
 from token import Token, TokenType, Sign, BinaryOperator, Word
 from expression import Expression, ExpressionType
+from element import Element, ElementType
+from condition import Condition, ConditionType
+from sentence import Sentence, SentenceType
 
 
 class TokenError(Exception):
@@ -25,6 +28,13 @@ class Parser(object):
             raise TokenError(token, TokenType.SIGN)
         if token.object != sign:
             raise TokenError(token, expected_object=sign)
+
+    @staticmethod
+    def parse_operator(token, operator):
+        if token.type != TokenType.OPERATOR:
+            raise TokenError(token, TokenType.OPERATOR)
+        if token.object != operator:
+            raise TokenError(token, expected_object=operator)
 
     @staticmethod
     def parse_identifier(token):
@@ -63,7 +73,7 @@ class Parser(object):
 
         consts = Parser.parse_comma_separated(tokens[1:-1], parse_function)
 
-        return Expression(ExpressionType.CONSTDEFINITION, consts)
+        return Element(ElementType.CONSTS, consts)
 
     @staticmethod
     def parse_variables(tokens):
@@ -83,7 +93,7 @@ class Parser(object):
 
         variables = Parser.parse_comma_separated(tokens[1:-1], parse_function)
 
-        return Expression(ExpressionType.VARIABLE, variables)
+        return Element(ElementType.VARS, variables)
 
     @staticmethod
     def parse_comma_separated(tokens, parse_handler):
@@ -94,12 +104,20 @@ class Parser(object):
         if len(tokens) == 0:
             return
 
-        expression = Parser.parse_operators([BinaryOperator.PLUS, BinaryOperator.MINUS], tokens)
-        if not expression:
-            expression = Parser.parse_operators([BinaryOperator.TIMES, BinaryOperator.SLASH], tokens)
+        separated_tokens = Parser.separate_tokens_with_operators([BinaryOperator.PLUS, BinaryOperator.MINUS], tokens)
+        if not separated_tokens:
+            separated_tokens = Parser.separate_tokens_with_operators([BinaryOperator.TIMES, BinaryOperator.SLASH], tokens)
 
-        if expression:
-            return expression
+        if separated_tokens:
+            previous_tokens, operator, after_tokens = separated_tokens
+
+            previous = Parser.parse_expression(previous_tokens)
+            after = Parser.parse_expression(after_tokens)
+
+            if not previous or not after:
+                raise TokenError(Token(TokenType.OPERATOR, operator))
+
+            return Expression(ExpressionType.BINARY, (previous, operator, after))
 
         if tokens[0].type is TokenType.SIGN and tokens[0].object is Sign.LEFTPAREN and tokens[-1].type is TokenType.SIGN and tokens[-1].object is Sign.RIGHTPAREN:
             return Parser.parse_expression(tokens[1:-1])
@@ -110,14 +128,79 @@ class Parser(object):
             if token.type is TokenType.NUMBER:
                 return Expression(ExpressionType.NUMBER, token.object)
             elif token.type is TokenType.IDENTIFIER:
-                return Expression(ExpressionType.VARIABLE, token.object)
+                return Expression(ExpressionType.IDENTIFIER, token.object)
 
         raise TokenError(tokens[0])
 
     @staticmethod
-    def parse_operators(operators, tokens):
+    def parse_condition(tokens):
+        if len(tokens) == 0:
+            return
+
+        if tokens[0].type is TokenType.WORD and tokens[0].object is Word.ODD:
+            expression = Parser.parse_expression(tokens[1:])
+            if not expression:
+                raise TokenError(tokens.get(1, None))
+
+            return Condition(ConditionType.UNARY, (Word.ODD, expression))
+
+        condition_operators = [
+            BinaryOperator.EQUAL,
+            BinaryOperator.HASHTAG,
+            BinaryOperator.LESS,
+            BinaryOperator.LESSEQUAL,
+            BinaryOperator.GREATER,
+            BinaryOperator.GREATEREQUAL
+        ]
+
+        separated_tokens = Parser.separate_tokens_with_operators(condition_operators, tokens)
+        if separated_tokens:
+            previous_tokens, operator, after_tokens = separated_tokens
+
+            previous = Parser.parse_expression(previous_tokens)
+            after = Parser.parse_expression(after_tokens)
+
+            if not previous or not after:
+                raise TokenError(Token(TokenType.OPERATOR, operator))
+
+            return Condition(ConditionType.BINARY, (previous, operator, after))
+
+        raise TokenError(tokens[0])
+
+    @staticmethod
+    def parse_assign(tokens):
+        if len(tokens) == 0:
+            return
+
+        if len(tokens) < 3:
+            raise TokenError(tokens[-1])
+
+        identifier = Parser.parse_identifier(tokens[0])
+        Parser.parse_operator(tokens[1], BinaryOperator.ASSIGN)
+        expression = Parser.parse_expression(tokens[2:-1])
+        Parser.parse_sign(tokens[-1], Sign.SEMICOLON)
+
+        return Sentence(SentenceType.ASSIGN, (identifier, expression))
+
+    @staticmethod
+    def parse_call(tokens):
+        if len(tokens) == 0:
+            return
+
+        if len(tokens) != 3:
+            raise TokenError(tokens[-1])
+
+        Parser.parse_word(tokens[0], Word.CALL)
+        identifier = Parser.parse_identifier(tokens[1])
+        Parser.parse_sign(tokens[2], Sign.SEMICOLON)
+
+        return Sentence(SentenceType.CALL, identifier)
+
+    @staticmethod
+    def separate_tokens_with_operators(operators, tokens):
         try:
-            op_index = next(index for index, token in enumerate(tokens) if token.type is TokenType.OPERATOR and token.object in operators)
+            op_index = next(index for index, token in enumerate(tokens) if
+                            token.type is TokenType.OPERATOR and token.object in operators)
         except StopIteration:
             return
 
@@ -129,13 +212,7 @@ class Parser(object):
         if not Parser.is_parans_match(after_tokens):
             return
 
-        previous = Parser.parse_expression(previous_tokens)
-        after = Parser.parse_expression(after_tokens)
-
-        if not previous or not after:
-            raise TokenError(tokens[op_index])
-
-        return Expression(ExpressionType.BINARY, (previous, tokens[op_index].object, after))
+        return previous_tokens, tokens[op_index].object, after_tokens
 
     @staticmethod
     def is_parans_match(tokens):
