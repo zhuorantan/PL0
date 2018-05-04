@@ -6,6 +6,7 @@ class ElementType(Enum):
     CONDITION = 2
     CONSTS = 3
     VARS = 4
+    PROCEDURE = 5
 
     def name(self):
         return ElementType._names[self]
@@ -15,7 +16,8 @@ ElementType._names = {
     ElementType.EXPRESSION: 'expression',
     ElementType.CONDITION: 'condition',
     ElementType.CONSTS: 'consts',
-    ElementType.VARS: 'vars'
+    ElementType.VARS: 'vars',
+    ElementType.PROCEDURE: 'procedure'
 }
 
 

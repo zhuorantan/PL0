@@ -68,17 +68,21 @@ from parser import Parser
 #     "var a,d;"
 # ]
 
+# programs = [
+#     'a := 1 + 2;',
+#     '''while a#0 DO
+#          IF a > b THEN
+#            begin
+#              a := c;
+#              call test;
+#              write(a+b, fs);
+#              read(fds, fds);
+#            end
+#     '''
+# ]
+
 programs = [
-    # 'a := 1 + 2;',
-    '''while a#0 DO 
-         IF a > b THEN
-           begin
-             a := c;
-             call test;
-             write(a+b, fs);
-             read(fds, fds);
-           end
-    '''
+    'procedure test;'
 ]
 
 parser = Parser()
@@ -88,6 +92,6 @@ for program in programs:
     for token in tokens:
         print(token)
 
-    expression = parser.parse_sentence(tokens)
+    expression = parser.parse_procedure(tokens)
     print(expression)
     print()

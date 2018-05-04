@@ -320,6 +320,47 @@ class Parser(object):
         return Sentence(SentenceType.READ if read_or_write is Word.READ else SentenceType.WRITE, content)
 
     @staticmethod
+    def parse_subprogram(tokens):
+        if len(tokens) == 0:
+            return
+
+        start_index = 0
+
+        consts = None
+        variables = None
+
+        if tokens[start_index].type is TokenType.WORD and tokens[start_index].object is Word.CONST:
+            end_index = next(index for index, token in enumerate(tokens[start_index:]) if token.type is TokenType.SIGN and token.object is Sign.SEMICOLON)
+            consts = Parser.parse_consts(tokens[start_index:end_index + 1])
+            start_index = end_index + 1
+
+        if tokens[start_index].type is TokenType.WORD and tokens[start_index].object is Word.VAR:
+            end_index = next(index for index, token in enumerate(tokens[start_index:]) if token.type is TokenType.SIGN and token.object is Sign.SEMICOLON)
+            variables = Parser.parse_variables(tokens[start_index:end_index + 1])
+            start_index = end_index + 1
+
+        if tokens[start_index].type is TokenType.WORD and tokens[start_index].object is Word.PROCEDURE:
+            end_index = next(index for index, token in enumerate(tokens[start_index:]) if token.type is TokenType.SIGN and token.object is Sign.SEMICOLON)
+            variables = Parser.parse_variables(tokens[start_index:end_index + 1])
+            start_index = end_index + 1
+
+    @staticmethod
+    def parse_procedure(tokens):
+        if len(tokens) == 0:
+            return
+
+        if len(tokens) < 3:
+            raise TokenError(tokens[-1])
+
+        Parser.parse_word(tokens[0], Word.PROCEDURE)
+        identifier = Parser.parse_identifier(tokens[1])
+        Parser.parse_sign(tokens[2], Sign.SEMICOLON)
+
+        subprogram = Parser.parse_subprogram(tokens[3:])
+
+        return Element(ElementType.PROCEDURE, (identifier, subprogram))
+
+    @staticmethod
     def separate_tokens_with_operators(operators, tokens):
         generator = (index for index, token in enumerate(tokens) if token.type is TokenType.OPERATOR and token.object in operators)
         try:
