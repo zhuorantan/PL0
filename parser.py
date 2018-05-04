@@ -133,7 +133,7 @@ class Parser(object):
         raise TokenError(tokens[0])
 
     @staticmethod
-    def parse_condition(tokens):
+    def parse_condition_expression(tokens):
         if len(tokens) == 0:
             return
 
@@ -168,39 +168,162 @@ class Parser(object):
         raise TokenError(tokens[0])
 
     @staticmethod
-    def parse_assign(tokens):
+    def parse_sentence(tokens):
         if len(tokens) == 0:
             return
 
+        assign = Parser.parse_assign(tokens)
+        if assign:
+            return assign
+
+        condition = Parser.parse_condition_sentence(tokens)
+        if condition:
+            return condition
+
+        loop = Parser.parse_loop_sentence(tokens)
+        if loop:
+            return loop
+
+        call = Parser.parse_call(tokens)
+        if call:
+            return call
+
+        compound = Parser.parse_compound(tokens)
+        if compound:
+            return compound
+
+        read_or_write = Parser.parse_read_or_write(tokens)
+        if read_or_write:
+            return read_or_write
+
+    @staticmethod
+    def parse_assign(tokens):
+        if len(tokens) == 0:
+            return
         if len(tokens) < 3:
-            raise TokenError(tokens[-1])
+            return
+
+        if not (tokens[1].type is TokenType.OPERATOR and tokens[1].object is BinaryOperator.ASSIGN):
+            return
 
         identifier = Parser.parse_identifier(tokens[0])
-        Parser.parse_operator(tokens[1], BinaryOperator.ASSIGN)
         expression = Parser.parse_expression(tokens[2:-1])
         Parser.parse_sign(tokens[-1], Sign.SEMICOLON)
 
         return Sentence(SentenceType.ASSIGN, (identifier, expression))
 
     @staticmethod
+    def parse_condition_sentence(tokens):
+        if len(tokens) == 0:
+            return
+
+        if not (tokens[0].type is TokenType.WORD and tokens[0].object is Word.IF):
+            return
+
+        try:
+            then_index = next(index for index, token in enumerate(tokens) if token.type is TokenType.WORD and token.object is Word.THEN)
+        except StopIteration:
+            return
+
+        previous_tokens = tokens[1:then_index]
+        after_tokens = tokens[then_index + 1:]
+
+        condition_expression = Parser.parse_condition_expression(previous_tokens)
+        sentence = Parser.parse_sentence(after_tokens)
+
+        return Sentence(SentenceType.CONDITION, (condition_expression, sentence))
+
+    @staticmethod
+    def parse_loop_sentence(tokens):
+        if len(tokens) == 0:
+            return
+
+        if not (tokens[0].type is TokenType.WORD and tokens[0].object is Word.WHILE):
+            return
+
+        try:
+            then_index = next(index for index, token in enumerate(tokens) if token.type is TokenType.WORD and token.object is Word.DO)
+        except StopIteration:
+            return
+
+        previous_tokens = tokens[1:then_index]
+        after_tokens = tokens[then_index + 1:]
+
+        condition_expression = Parser.parse_condition_expression(previous_tokens)
+        sentence = Parser.parse_sentence(after_tokens)
+
+        return Sentence(SentenceType.LOOP, (condition_expression, sentence))
+
+    @staticmethod
     def parse_call(tokens):
         if len(tokens) == 0:
+            return
+
+        if not (tokens[0].type is TokenType.WORD and tokens[0].object is Word.CALL):
             return
 
         if len(tokens) != 3:
             raise TokenError(tokens[-1])
 
-        Parser.parse_word(tokens[0], Word.CALL)
         identifier = Parser.parse_identifier(tokens[1])
         Parser.parse_sign(tokens[2], Sign.SEMICOLON)
 
         return Sentence(SentenceType.CALL, identifier)
 
     @staticmethod
+    def parse_compound(tokens):
+        if len(tokens) == 0:
+            return
+
+        if not (tokens[0].type is TokenType.WORD and tokens[0].object is Word.BEGIN):
+            return
+
+        Parser.parse_word(tokens[-1], Word.END)
+
+        sentences = []
+        start_index = 1
+        generator = (index for index, token in enumerate(tokens) if token.type is TokenType.SIGN and token.object is Sign.SEMICOLON)
+        while True:
+            try:
+                end_index = next(generator)
+            except StopIteration:
+                break
+
+            sentences.append(Parser.parse_sentence(tokens[start_index:end_index+1]))
+            start_index = end_index + 1
+
+        return Sentence(SentenceType.COMPOUND, sentences)
+
+    @staticmethod
+    def parse_read_or_write(tokens):
+        if len(tokens) == 0:
+            return
+
+        if not (tokens[0].type is TokenType.WORD and (tokens[0].object is Word.READ or tokens[0].object is Word.WRITE)):
+            return
+
+        Parser.parse_sign(tokens[1], Sign.LEFTPAREN)
+        Parser.parse_sign(tokens[-2], Sign.RIGHTPAREN)
+        Parser.parse_sign(tokens[-1], Sign.SEMICOLON)
+
+        def read_parse_function(tokens):
+            if len(tokens) == 0:
+                raise EOFError
+            if len(tokens) != 1:
+                raise TokenError(tokens[-1])
+
+            return Parser.parse_identifier(tokens[0])
+
+        read_or_write = tokens[0].object
+        content = Parser.parse_comma_separated(tokens[2:-2], read_parse_function if read_or_write is Word.READ else Parser.parse_expression)
+
+        return Sentence(SentenceType.READ if read_or_write is Word.READ else SentenceType.WRITE, content)
+
+    @staticmethod
     def separate_tokens_with_operators(operators, tokens):
+        generator = (index for index, token in enumerate(tokens) if token.type is TokenType.OPERATOR and token.object in operators)
         try:
-            op_index = next(index for index, token in enumerate(tokens) if
-                            token.type is TokenType.OPERATOR and token.object in operators)
+            op_index = next(generator)
         except StopIteration:
             return
 

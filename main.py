@@ -70,7 +70,15 @@ from parser import Parser
 
 programs = [
     # 'a := 1 + 2;',
-    'CALL something;'
+    '''while a#0 DO 
+         IF a > b THEN
+           begin
+             a := c;
+             call test;
+             write(a+b, fs);
+             read(fds, fds);
+           end
+    '''
 ]
 
 parser = Parser()
@@ -80,6 +88,6 @@ for program in programs:
     for token in tokens:
         print(token)
 
-    expression = parser.parse_call(tokens)
+    expression = parser.parse_sentence(tokens)
     print(expression)
     print()
