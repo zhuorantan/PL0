@@ -1,8 +1,5 @@
 from tokens import Token, TokenType, Sign, BinaryOperator, Word
-from expression import Expression, ExpressionType
-from element import Element, ElementType
-from condition import Condition, ConditionType
-from sentence import Sentence, SentenceType
+from element import Expression, ExpressionType, Condition, ConditionType, Sentence, SentenceType, Element, ElementType
 
 
 class TokenError(Exception):
