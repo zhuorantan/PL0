@@ -2,22 +2,22 @@ from enum import Enum
 
 
 class ElementType(Enum):
-    EXPRESSION = 1
-    CONDITION = 2
-    CONSTS = 3
-    VARS = 4
-    PROCEDURE = 5
+    CONSTS = 1
+    VARS = 2
+    PROCEDURE = 3
+    SUBPROGRAM = 4
+    PROGRAM = 5
 
     def name(self):
         return ElementType._names[self]
 
 
 ElementType._names = {
-    ElementType.EXPRESSION: 'expression',
-    ElementType.CONDITION: 'condition',
     ElementType.CONSTS: 'consts',
     ElementType.VARS: 'vars',
-    ElementType.PROCEDURE: 'procedure'
+    ElementType.PROCEDURE: 'procedure',
+    ElementType.SUBPROGRAM: 'subprogram',
+    ElementType.PROGRAM: 'program'
 }
 
 

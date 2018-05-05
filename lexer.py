@@ -1,4 +1,5 @@
-from token import Token, TokenType
+from tokens import Token, TokenType
+
 
 class Lexer:
 
@@ -42,19 +43,19 @@ class Lexer:
 
         char = self.current_char()
 
+        if self.index + 1 < len(self.input):
+            double_token = Token.doubles.get(char + self.input[self.index + 1], None)
+
+            if double_token:
+                self.advance_index()
+                self.advance_index()
+                return double_token
+
         token = Token.singles.get(char, None)
 
         if token:
             self.advance_index()
             return token
-
-        if self.index + 1 < len(self.input):
-            token = Token.doubles.get(char + self.input[self.index + 1], None)
-
-            if token:
-                self.advance_index()
-                self.advance_index()
-                return token
 
         if char.isalnum():
             string = self.read_identifier_or_number().lower()
