@@ -1,5 +1,5 @@
 from tokens import Token, TokenType, Sign, BinaryOperator, Word
-from element import Expression, ExpressionType, Condition, ConditionType, Sentence, SentenceType, Element, ElementType
+from element import Expression, ExpressionType, Condition, ConditionType, Sentence, SentenceType, Element, ElementType, Program
 
 
 class TokenError(Exception):
@@ -263,7 +263,7 @@ class Parser(object):
 
         sentence = self.parse_sentence()
 
-        return Element(ElementType.SUBPROGRAM, (consts, variables, procedures, sentence))
+        return Element(ElementType.SUBPROGRAM, Program(consts, variables, procedures, sentence))
 
     def parse_procedure(self):
         if self.current_token() != Token(TokenType.WORD, Word.PROCEDURE):
@@ -323,7 +323,7 @@ class Parser(object):
                     raise TokenError(token, TokenType.OPERATOR)
 
                 top = peak(operators)
-                while top is not None and top not in {Sign.LEFTPAREN, Sign.RIGHTPAREN} and precedences[top] > \
+                while top is not None and top not in {Sign.LEFTPAREN, Sign.RIGHTPAREN} and precedences[top] >= \
                         precedences[token.object]:
                     apply_operator()
                     top = peak(operators)

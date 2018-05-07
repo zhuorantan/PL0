@@ -61,7 +61,7 @@ class Lexer:
             string = self.read_identifier_or_number().lower()
 
             try:
-                number = float(string)
+                number = int(string)
                 return Token(TokenType.NUMBER, number)
             except ValueError:
                 pass

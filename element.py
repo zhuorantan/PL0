@@ -94,6 +94,21 @@ class Sentence(object):
         return self.__str__()
 
 
+class Program(object):
+
+    def __init__(self, consts, variables, procedures, sentence):
+        self.consts = consts
+        self.variables = variables
+        self.procedures = procedures
+        self.sentence = sentence
+
+    def __str__(self):
+        return 'Program(%s, %s, %s, %s)' % (self.consts, self.variables, self.procedures, self.sentence)
+
+    def __repr__(self):
+        return self.__str__()
+
+
 class ElementType(Enum):
     CONSTS = 1
     VARS = 2
