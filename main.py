@@ -7,21 +7,20 @@ from compiler import Compiler
 
 
 argparser = ArgumentParser(description='Compile PL0 source.')
-argparser.add_argument('source_file', nargs=1, metavar='file', type=str, help='source file of PL0 program')
-argparser.add_argument('-o', nargs=1, metavar='file', type=str, help='output file of PL0 program')
+argparser.add_argument('source_file', metavar='file', type=str, help='source file of PL0 program')
+argparser.add_argument('-o', metavar='file', type=str, help='output file of PL0 program')
+argparser.add_argument('-llc', metavar='llvm', type=str, help='LLVM command line tool path', default='/usr/local/opt/llvm/bin/llc')
 argparser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
 
 args = argparser.parse_args()
 verbose = args.verbose
-source_file = args.source_file[0]
+source_file = args.source_file
 filename = Path(source_file).name.split('.')[0]
 bit_code_file = filename + '.bc'
 object_file = filename + '.o'
-out_files = args.o
-if out_files is None:
+out_file = args.o
+if out_file is None:
     out_file = filename
-else:
-    out_file = out_files[0]
 
 source_f = open(source_file, 'r')
 source = source_f.read()
@@ -54,5 +53,5 @@ bit_code_f = open(bit_code_file, 'w')
 bit_code_f.write(ir_source)
 bit_code_f.close()
 
-run(['/usr/local/opt/llvm/bin/llc', '-filetype=obj', bit_code_file, '-o', object_file])
+run([args.llc, '-filetype=obj', bit_code_file, '-o', object_file])
 run(['gcc', object_file, '-o', out_file])

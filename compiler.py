@@ -1,4 +1,4 @@
-from llvmlite import ir
+from llvmlite import ir, binding
 from element import SentenceType, ExpressionType, ConditionType
 from tokens import BinaryOperator, Word
 
@@ -19,7 +19,8 @@ class Compiler(object):
 
     def __init__(self, program):
         self.module = ir.Module('main')
-        self.module.triple = 'x86_64-apple-darwin17.5.0'
+        self.module.triple = binding.targets.get_default_triple()
+
         self.program = program
 
     def emit_procedure(self, procedure):
