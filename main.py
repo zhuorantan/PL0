@@ -38,6 +38,7 @@ if verbose:
 program = Parser(tokens).parse_program()
 
 if verbose:
+    print('Program:')
     print(program)
     print()
 
@@ -45,6 +46,7 @@ compiler = Compiler(program.content.content)
 ir_source = compiler.compile()
 
 if verbose:
+    print('LLVM IR source:')
     print(ir_source)
     print()
 

@@ -36,7 +36,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/Users/jerome/Desktop/PL0/venv"
+set -gx VIRTUAL_ENV "/Users/jerome/Library/Mobile Documents/com~apple~CloudDocs/Workspace/PL0/venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH
