@@ -1,7 +1,6 @@
-from llvmlite import ir, binding
+from llvmlite import ir
 from element import SentenceType, ExpressionType, ConditionType
 from tokens import BinaryOperator, Word
-from ctypes import CFUNCTYPE
 
 
 class VariableUndefinedError(Exception):
@@ -16,12 +15,12 @@ class FunctionUndefinedError(Exception):
         self.identifier = identifier
 
 
-class IRGenerator(object):
+class Compiler(object):
 
     def __init__(self, program):
         self.module = ir.Module('main')
+        self.module.triple = 'x86_64-apple-darwin17.5.0'
         self.program = program
-        self.engine = None
 
     def emit_procedure(self, procedure):
         identifier, subprogram = procedure
@@ -216,7 +215,7 @@ class IRGenerator(object):
             elif operator == BinaryOperator.GREATEREQUAL:
                 return builder.icmp_signed('>=', lhs_result, rhs_result)
 
-    def emit(self):
+    def compile(self):
         if self.program.consts is not None:
             for const in self.program.consts.content:
                 identifier, value = const
@@ -241,25 +240,4 @@ class IRGenerator(object):
         self.emit_sentence(self.program.sentence, builder, {}, {})
         builder.ret_void()
 
-    def generate(self):
-        binding.initialize()
-        binding.initialize_native_target()
-        binding.initialize_native_asmprinter()
-
-        target = binding.Target.from_default_triple()
-        target_machine = target.create_target_machine()
-        backing_mod = binding.parse_assembly('')
-        engine = binding.create_mcjit_compiler(backing_mod, target_machine)
-
-        mod = binding.parse_assembly(str(self.module))
-        mod.verify()
-
-        engine.add_module(mod)
-        engine.finalize_object()
-
-        self.engine = engine
-
-    def run(self):
-        func_ptr = self.engine.get_function_address('main')
-        func = CFUNCTYPE(None)(func_ptr)
-        func()
+        return str(self.module)

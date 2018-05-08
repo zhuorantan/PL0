@@ -1,159 +1,56 @@
+from argparse import ArgumentParser
+from subprocess import run
+from pathlib import Path
 from lexer import Lexer
 from parser import Parser
-from generator import IRGenerator
+from compiler import Compiler
 
-programs = [
-    """
-    Const num=100;
-    Var a1,b2;
-    Begin
-      Read(A1);
-      b2:=a1+num;
-      write(A1,B2);
-    End.
-    """,
 
-    """
-    const a=10;
-    var b,c;
-    begin
-      read(b);
-      c:=a+b;
-      write(c);
-    end.
-    """,
+argparser = ArgumentParser(description='Compile PL0 source.')
+argparser.add_argument('source_file', nargs=1, metavar='file', type=str, help='source file of PL0 program')
+argparser.add_argument('-o', nargs=1, metavar='file', type=str, help='output file of PL0 program')
+argparser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
 
-    """
-    VAR x, squ;
+args = argparser.parse_args()
+verbose = args.verbose
+source_file = args.source_file[0]
+filename = Path(source_file).name.split('.')[0]
+bit_code_file = filename + '.bc'
+object_file = filename + '.o'
+out_files = args.o
+if out_files is None:
+    out_file = filename
+else:
+    out_file = out_files[0]
 
-    PROCEDURE square;
-    BEGIN
-        squ:= x * x;
-    END
+source_f = open(source_file, 'r')
+source = source_f.read()
+source_f.close()
 
-    BEGIN
-        x := 1;
-        WHILE x <= 10 DO
-        BEGIN
-            CALL square;
-            WRITE(squ);
-            x := x + 1;
-        END
-    END.
-    """,
-    """
-    const max = 100;
-    var arg, ret;
+tokens = Lexer(source).lex()
 
-    procedure isprime;
-    var i;
-    begin
-        ret := 1;
-        i := 2;
-        while i < arg do
-        begin
-            if arg / i * i = arg then
-            begin
-                ret := 0;
-                i := arg;
-            end
-            i := i + 1;
-        end
-    end
-
-    procedure primes;
-    begin
-        arg := 2;
-        while arg < max do
-        begin
-            call isprime;
-            if ret = 1 then write(arg);
-            arg := arg + 1;
-        end
-    end
-
-    call primes;
-    .
-    """,
-    """
-    VAR x, y, z, q, r, n, f;
-
-    PROCEDURE multiply;
-    VAR a, b;
-    BEGIN
-        a := x;
-        b := Y;
-        z := 0;
-        WHILE b > 0 DO
-        BEGIN
-            IF ODD(b) THEN z := z + a;
-            a := 2 * a;
-            b := b / 2;
-        END
-    END
-
-    PROCEDURE divide;
-    VAR w;
-    BEGIN
-        r := x;
-        q := 0;
-        w := y;
-        WHILE w <= r DO w := 2 * w;
-        WHILE w > y DO
-        BEGIN
-            q := 2 * q;
-            w := w / 2;
-            IF w <= r THEN
-            BEGIN
-                r := r - w;
-                q := q + 1;
-            END
-        END
-    END
-
-    PROCEDURE gcd;
-    VAR f, g;
-    BEGIN
-        f := x;
-        g := y;
-        WHILE f # g DO
-        BEGIN
-            IF f < g THEN g := g - f;
-            IF g < f THEN f := f - g;
-        END
-        z := f;
-    END
-
-    PROCEDURE fact;
-    BEGIN
-        IF n > 1 THEN
-        BEGIN
-            f := n * f;
-            n := n - 1;
-            CALL fact;
-        END
-    END
-
-    BEGIN
-        read(x); read(y); CALL multiply; write(z);
-        read(x); read(y); CALL divide; write(q); write(r);
-        read(x); read(y); CALL gcd; write(z);
-        read(n); f := 1; CALL fact; write(f);
-    END.
-    """
-]
-
-for program in programs:
-    tokens = Lexer(program).lex()
+if verbose:
+    print('Tokens:')
     for token in tokens:
         print(token)
-
-    program = Parser(tokens).parse_program()
-    print(program)
-
-    generator = IRGenerator(program.content.content)
-    generator.emit()
-    print(generator.module)
-    generator.generate()
-    generator.run()
     print()
+
+program = Parser(tokens).parse_program()
+
+if verbose:
+    print(program)
+    print()
+
+compiler = Compiler(program.content.content)
+ir_source = compiler.compile()
+
+if verbose:
+    print(ir_source)
+    print()
+
+bit_code_f = open(bit_code_file, 'w')
+bit_code_f.write(ir_source)
+bit_code_f.close()
+
+run(['/usr/local/opt/llvm/bin/llc', '-filetype=obj', bit_code_file, '-o', object_file])
+run(['gcc', object_file, '-o', out_file])
