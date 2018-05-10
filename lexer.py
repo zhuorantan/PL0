@@ -1,4 +1,4 @@
-from tokens import Token, TokenType
+from tokens import Token, TokenType, Sign, BinaryOperator
 
 
 class Lexer:
@@ -16,8 +16,16 @@ class Lexer:
     def current_char(self):
         return self.input[self.index]
 
+    def line_index(self):
+        return self.input.count('\n', 0, self.index)
+
+    def index_in_current_line(self):
+        return self.index - self.input.rfind('\n', 0, self.index) - 1
+
     def read_identifier_or_number(self):
         text = ''
+        line, index = self.line_index(), self.index_in_current_line()
+
         while not self.is_finished():
             char = self.current_char()
 
@@ -27,7 +35,7 @@ class Lexer:
             text += char
             self.advance_index()
 
-        return text
+        return text, line, index
 
     def advance_to_next_token(self):
         while not self.is_finished():
@@ -44,33 +52,39 @@ class Lexer:
         char = self.current_char()
 
         if self.index + 1 < len(self.input):
-            double_token = Token.doubles.get(char + self.input[self.index + 1], None)
+            operator = Token.double(char + self.input[self.index + 1])
 
-            if double_token:
+            if operator:
+                double_token = Token(TokenType.OPERATOR, operator, self.line_index(), self.index_in_current_line())
+
                 self.advance_index()
                 self.advance_index()
                 return double_token
 
-        token = Token.singles.get(char, None)
+        sign_or_operator = Token.single(char)
 
-        if token:
+        if sign_or_operator:
+            token = Token(TokenType.SIGN if type(sign_or_operator) is Sign else TokenType.OPERATOR, sign_or_operator, self.line_index(), self.index_in_current_line())
+
             self.advance_index()
             return token
 
         if char.isalnum():
-            string = self.read_identifier_or_number().lower()
+            string, line, index = self.read_identifier_or_number()
+            string = string.lower()
 
             try:
                 number = int(string)
-                return Token(TokenType.NUMBER, number)
+                return Token(TokenType.NUMBER, number, line, index)
             except ValueError:
                 pass
 
-            word = Token.words.get(string, None)
+            word = Token.word(string)
             if word:
-                return word
+                token = Token(TokenType.WORD, word, line, index)
+                return token
 
-            return Token(TokenType.IDENTIFIER, string)
+            return Token(TokenType.IDENTIFIER, string, line, index)
 
     def lex(self):
         tokens = []

@@ -304,7 +304,13 @@ class Parser(object):
             BinaryOperator.SLASH: 2
         }
 
+        last_token_type = TokenType.OPERATOR
+
         for token in tokens:
+            if last_token_type == token.type:
+                raise TokenError(token)
+            last_token_type = token.type
+
             if token.type == TokenType.NUMBER:
                 expressions.append(Expression(ExpressionType.NUMBER, token.object))
             elif token.type == TokenType.IDENTIFIER:
@@ -366,7 +372,7 @@ class Parser(object):
 
             return Condition(ConditionType.BINARY, (previous, operator, after))
 
-        raise TokenError(tokens[0])
+        raise TokenError(tokens[1])
 
     @staticmethod
     def separate_tokens_with_operators(tokens, operators):

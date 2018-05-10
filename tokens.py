@@ -148,9 +148,11 @@ class TokenType(Enum):
 
 class Token(object):
 
-    def __init__(self, type, object):
+    def __init__(self, type, object, line=0, index=0):
         self.type = type
         self.object = object
+        self.line = line
+        self.index = index
 
     def name(self):
         if self.type == TokenType.IDENTIFIER:
@@ -169,7 +171,7 @@ class Token(object):
             return self.object.value()
 
     def __str__(self):
-        return 'Token(%s, %s)' % (self.name(), self.value())
+        return 'Token(%s, %s, %d, %d)' % (self.name(), self.value(), self.line, self.index)
 
     def __repr__(self):
         return self.__str__()
@@ -177,10 +179,21 @@ class Token(object):
     def __eq__(self, other):
         return self.type == other.type and self.object == other.object
 
+    @staticmethod
+    def word(value):
+        return Token._words.get(value, None)
+
+    @staticmethod
+    def single(value):
+        return Token._singles.get(value, None)
+
+    @staticmethod
+    def double(value):
+        return Token._doubles.get(value, None)
+
 
 Token._single_tokens = list(Sign) + [operator for operator in BinaryOperator if len(operator.value()) == 1]
-Token._double_tokens = [operator for operator in BinaryOperator if len(operator.value()) == 2]
 
-Token.words = dict([(word.value(), Token(TokenType.WORD, word)) for word in Word])
-Token.singles = dict([(sign_or_operator.value(), Token(TokenType.SIGN if type(sign_or_operator) is Sign else TokenType.OPERATOR, sign_or_operator)) for sign_or_operator in Token._single_tokens])
-Token.doubles = dict([(operator.value(), Token(TokenType.OPERATOR, operator)) for operator in Token._double_tokens])
+Token._words = dict([(word.value(), word) for word in Word])
+Token._singles = dict([(sign_or_operator.value(), sign_or_operator) for sign_or_operator in Token._single_tokens])
+Token._doubles = dict([(operator.value(), operator) for operator in BinaryOperator if len(operator.value()) == 2])
